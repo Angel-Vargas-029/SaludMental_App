@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "298651356567",
+    "project_id": "saludmentalapp-ad526",
+    "storage_bucket": "saludmentalapp-ad526.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:298651356567:android:acb1c42e3e12c4f0fc48d2",
+        "android_client_info": {
+          "package_name": "com.example.saludmental"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCmzKKYbKSWn2xEf9BqYGyaBRLGEidmy4Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
