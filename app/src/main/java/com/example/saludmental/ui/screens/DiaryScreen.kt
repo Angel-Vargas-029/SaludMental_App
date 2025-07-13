@@ -1,3 +1,4 @@
+// app/src/main/java/com/example/saludmental/ui/screens/DiaryScreen.kt
 package com.example.saludmental.ui.screens
 
 import androidx.compose.foundation.layout.*
@@ -11,21 +12,36 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.saludmental.data.models.DiaryEntry
 import com.example.saludmental.ui.components.BackButton
 import com.example.saludmental.ui.components.DiaryCard
 import com.example.saludmental.ui.components.InputField
 import com.example.saludmental.ui.components.PrimaryButton
-import java.util.*
+import com.example.saludmental.ui.viewmodel.DiaryViewModel
 
 @Composable
-fun DiaryScreen(navController: NavController) {
-    var diaryEntries by remember { mutableStateOf(getSampleEntries()) }
+fun DiaryScreen(
+    navController: NavController,
+    diaryViewModel: DiaryViewModel = viewModel()
+) {
+    val uiState by diaryViewModel.uiState.collectAsStateWithLifecycle()
+    val operationState by diaryViewModel.operationState.collectAsStateWithLifecycle()
+
     var showDialog by remember { mutableStateOf(false) }
     var editingEntry by remember { mutableStateOf<DiaryEntry?>(null) }
     var title by remember { mutableStateOf("") }
     var content by remember { mutableStateOf("") }
+
+    // Mostrar mensajes de operaciones
+    LaunchedEffect(operationState) {
+        operationState?.let {
+            // Aquí podrías mostrar un Snackbar, por simplicidad lo limpiamos
+            diaryViewModel.clearOperationState()
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -58,62 +74,110 @@ fun DiaryScreen(navController: NavController) {
             }
         }
     ) { innerPadding ->
-        if (diaryEntries.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = "Aún no hay entradas",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = "Toca el botón + para crear tu primera entrada",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                item { Spacer(modifier = Modifier.height(8.dp)) }
-
-                items(diaryEntries) { entry ->
-                    DiaryCard(
-                        entry = entry,
-                        onEdit = {
-                            editingEntry = entry
-                            title = entry.title
-                            content = entry.content
-                            showDialog = true
-                        },
-                        onDelete = {
-                            diaryEntries = diaryEntries.filter { it.id != entry.id }
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+        ) {
+            when {
+                uiState.isLoading -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            CircularProgressIndicator()
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text("Cargando entradas...")
                         }
-                    )
+                    }
                 }
 
-                item { Spacer(modifier = Modifier.height(100.dp)) }
+                uiState.errorMessage != null -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "❌ Error:",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                            Text(
+                                text = uiState.errorMessage!!,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+
+                uiState.entries.isEmpty() -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "📝 No hay entradas aún",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Toca el botón + para crear tu primera entrada",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+
+                else -> {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        item { Spacer(modifier = Modifier.height(8.dp)) }
+
+                        items(uiState.entries) { entry ->
+                            DiaryCard(
+                                entry = entry,
+                                onEdit = {
+                                    editingEntry = entry
+                                    title = entry.title
+                                    content = entry.content
+                                    showDialog = true
+                                },
+                                onDelete = {
+                                    diaryViewModel.deleteDiaryEntry(entry.id)
+                                }
+                            )
+                        }
+
+                        item { Spacer(modifier = Modifier.height(100.dp)) }
+                    }
+                }
             }
         }
     }
 
+    // Dialog para agregar/editar entrada
     if (showDialog) {
         AlertDialog(
             onDismissRequest = { showDialog = false },
-            title = { Text(if (editingEntry == null) "Nueva Entrada" else "Editar Entrada") },
+            title = {
+                Text(if (editingEntry == null) "Nueva Entrada" else "Editar Entrada")
+            },
             text = {
                 Column {
                     InputField(
@@ -137,20 +201,13 @@ fun DiaryScreen(navController: NavController) {
                     onClick = {
                         if (title.isNotBlank() && content.isNotBlank()) {
                             if (editingEntry == null) {
-                                val newEntry = DiaryEntry(
-                                    id = UUID.randomUUID().toString(),
-                                    title = title,
-                                    content = content
-                                )
-                                diaryEntries = diaryEntries + newEntry
+                                diaryViewModel.saveDiaryEntry(title, content)
                             } else {
-                                diaryEntries = diaryEntries.map {
-                                    if (it.id == editingEntry!!.id) {
-                                        it.copy(title = title, content = content)
-                                    } else it
-                                }
+                                diaryViewModel.updateDiaryEntry(editingEntry!!.id, title, content)
                             }
                             showDialog = false
+                            title = ""
+                            content = ""
                         }
                     }
                 )
@@ -162,19 +219,4 @@ fun DiaryScreen(navController: NavController) {
             }
         )
     }
-}
-
-private fun getSampleEntries(): List<DiaryEntry> {
-    return listOf(
-        DiaryEntry(
-            id = "1",
-            title = "Un día productivo",
-            content = "Hoy me levanté temprano y pude completar todas mis tareas. Me siento muy satisfecho con lo que logré. La organización realmente marca la diferencia en mi estado de ánimo."
-        ),
-        DiaryEntry(
-            id = "2",
-            title = "Reflexiones sobre el estrés",
-            content = "Últimamente he notado que el estrés del trabajo me está afectando más de lo normal. Necesito encontrar mejores formas de manejarlo. Tal vez debería probar la meditación."
-        )
-    )
 }
