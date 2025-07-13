@@ -1,22 +1,30 @@
 package com.example.saludmental.ui.screens
 
-import android.content.Context
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.saludmental.data.models.AuthState
 import com.example.saludmental.ui.components.*
+import com.example.saludmental.ui.viewmodel.AuthViewModel
 import com.example.saludmental.util.ConnectivityObserver
 
 @Composable
-fun RegisterScreen(navController: NavController) {
+fun RegisterScreen(
+    navController: NavController,
+    authViewModel: AuthViewModel = viewModel()
+) {
     val context = LocalContext.current
     val isConnected = ConnectivityObserver.isConnected(context)
+
+    val authState by authViewModel.authState.collectAsStateWithLifecycle()
+    val isUserSignedIn by authViewModel.isUserSignedIn.collectAsStateWithLifecycle()
 
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -28,26 +36,84 @@ fun RegisterScreen(navController: NavController) {
     var passwordError by remember { mutableStateOf("") }
     var birthDateError by remember { mutableStateOf("") }
 
+    // Navegar a home si el usuario ya está autenticado
+    LaunchedEffect(isUserSignedIn) {
+        if (isUserSignedIn) {
+            navController.navigate("home") {
+                popUpTo("register") { inclusive = true }
+            }
+        }
+    }
+
+    // Manejar estados de autenticación
+    LaunchedEffect(authState) {
+        when (authState) {
+            is AuthState.Success -> {
+                navController.navigate("home") {
+                    popUpTo("register") { inclusive = true }
+                }
+                authViewModel.clearAuthState()
+            }
+            is AuthState.Error -> {
+                // El error se muestra en la UI
+            }
+            else -> { /* No hacer nada */ }
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(24.dp),
         verticalArrangement = Arrangement.Center
     ) {
-        TopBar("Bienvenido")
+        TopBar("Crear cuenta")
 
         if (!isConnected) {
-            Text(
-                text = "Sin conexión a Internet",
-                color = Color.Red,
-                style = MaterialTheme.typography.bodyMedium
-            )
-            Spacer(modifier = Modifier.height(8.dp))
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+            ) {
+                Text(
+                    text = "⚠️ Sin conexión a Internet",
+                    modifier = Modifier.padding(16.dp),
+                    color = MaterialTheme.colorScheme.onErrorContainer
+                )
+            }
+            Spacer(modifier = Modifier.height(16.dp))
         }
 
-        InputField(label = "Nombre", value = name, onValueChange = { name = it }, placeholder = "Ej. Angel")
+        // Mostrar errores de autenticación
+        if (authState is AuthState.Error) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+            ) {
+                Text(
+                    text = (authState as AuthState.Error).message,
+                    modifier = Modifier.padding(16.dp),
+                    color = MaterialTheme.colorScheme.onErrorContainer
+                )
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
+        InputField(
+            label = "Nombre completo",
+            value = name,
+            onValueChange = {
+                name = it
+                nameError = ""
+            },
+            placeholder = "Ej. Juan Pérez"
+        )
         if (nameError.isNotEmpty()) {
-            Text(nameError, color = Color.Red, fontSize = MaterialTheme.typography.bodySmall.fontSize)
+            Text(
+                text = nameError,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(start = 4.dp, top = 4.dp)
+            )
         }
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -55,12 +121,20 @@ fun RegisterScreen(navController: NavController) {
         InputField(
             label = "Correo electrónico",
             value = email,
-            onValueChange = { email = it },
+            onValueChange = {
+                email = it
+                emailError = ""
+            },
             keyboardType = KeyboardType.Email,
-            placeholder = "nombre@gmail.com"
+            placeholder = "ejemplo@correo.com"
         )
         if (emailError.isNotEmpty()) {
-            Text(emailError, color = Color.Red, fontSize = MaterialTheme.typography.bodySmall.fontSize)
+            Text(
+                text = emailError,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(start = 4.dp, top = 4.dp)
+            )
         }
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -68,12 +142,20 @@ fun RegisterScreen(navController: NavController) {
         InputField(
             label = "Contraseña",
             value = password,
-            onValueChange = { password = it },
+            onValueChange = {
+                password = it
+                passwordError = ""
+            },
             isPassword = true,
             placeholder = "Mínimo 6 caracteres"
         )
         if (passwordError.isNotEmpty()) {
-            Text(passwordError, color = Color.Red, fontSize = MaterialTheme.typography.bodySmall.fontSize)
+            Text(
+                text = passwordError,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(start = 4.dp, top = 4.dp)
+            )
         }
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -81,20 +163,26 @@ fun RegisterScreen(navController: NavController) {
         InputField(
             label = "Fecha de nacimiento",
             value = birthDate,
-            onValueChange = { birthDate = it },
-            keyboardType = KeyboardType.Number,
-            placeholder = "dd-mm-yyyy"
+            onValueChange = {
+                birthDate = it
+                birthDateError = ""
+            },
+            placeholder = "dd/mm/aaaa (opcional)"
         )
         if (birthDateError.isNotEmpty()) {
-            Text(birthDateError, color = Color.Red, fontSize = MaterialTheme.typography.bodySmall.fontSize)
+            Text(
+                text = birthDateError,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(start = 4.dp, top = 4.dp)
+            )
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
-        PrimaryButton(
-            text = "Registrarse",
+        Button(
             onClick = {
-                if (!isConnected) return@PrimaryButton
+                if (!isConnected) return@Button
 
                 var isValid = true
 
@@ -119,22 +207,30 @@ fun RegisterScreen(navController: NavController) {
                     isValid = false
                 }
 
-                if (birthDate.isBlank()) {
-                    birthDateError = "La fecha no puede estar vacía"
-                    isValid = false
-                }
-
                 if (isValid) {
-                    navController.navigate("home") // será sustituido por registro real
+                    authViewModel.signUp(email, password, name)
                 }
+            },
+            modifier = Modifier.fillMaxWidth(),
+            enabled = authState !is AuthState.Loading && isConnected
+        ) {
+            if (authState is AuthState.Loading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+                Spacer(modifier = Modifier.width(8.dp))
             }
-        )
+            Text("Crear cuenta")
+        }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
-        PrimaryButton(
-            text = "Volver al Login",
-            onClick = { navController.popBackStack() }
-        )
+        OutlinedButton(
+            onClick = { navController.popBackStack() },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Ya tengo cuenta")
+        }
     }
 }

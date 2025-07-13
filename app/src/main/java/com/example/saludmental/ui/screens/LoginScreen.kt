@@ -1,28 +1,62 @@
 package com.example.saludmental.ui.screens
 
-import android.content.Context
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.saludmental.data.models.AuthState
 import com.example.saludmental.ui.components.*
+import com.example.saludmental.ui.viewmodel.AuthViewModel
 import com.example.saludmental.util.ConnectivityObserver
 
 @Composable
-fun LoginScreen(navController: NavController) {
+fun LoginScreen(
+    navController: NavController,
+    authViewModel: AuthViewModel = viewModel()
+) {
     val context = LocalContext.current
     val isConnected = ConnectivityObserver.isConnected(context)
 
+    val authState by authViewModel.authState.collectAsStateWithLifecycle()
+    val isUserSignedIn by authViewModel.isUserSignedIn.collectAsStateWithLifecycle()
+
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-
     var emailError by remember { mutableStateOf("") }
     var passwordError by remember { mutableStateOf("") }
+
+    // Navegar a home si el usuario ya está autenticado
+    LaunchedEffect(isUserSignedIn) {
+        if (isUserSignedIn) {
+            navController.navigate("home") {
+                popUpTo("login") { inclusive = true }
+            }
+        }
+    }
+
+    // Manejar estados de autenticación
+    LaunchedEffect(authState) {
+        when (authState) {
+            is AuthState.Success -> {
+                navController.navigate("home") {
+                    popUpTo("login") { inclusive = true }
+                }
+                authViewModel.clearAuthState()
+            }
+            is AuthState.Error -> {
+                // El error se muestra en la UI
+            }
+            else -> { /* No hacer nada */ }
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -30,15 +64,35 @@ fun LoginScreen(navController: NavController) {
             .padding(24.dp),
         verticalArrangement = Arrangement.Center
     ) {
-        TopBar("Ingreso")
+        TopBar("Bienvenido de vuelta")
 
         if (!isConnected) {
-            Text(
-                text = "Sin conexión a Internet",
-                color = Color.Red,
-                style = MaterialTheme.typography.bodyMedium
-            )
-            Spacer(modifier = Modifier.height(8.dp))
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+            ) {
+                Text(
+                    text = "⚠️ Sin conexión a Internet",
+                    modifier = Modifier.padding(16.dp),
+                    color = MaterialTheme.colorScheme.onErrorContainer
+                )
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
+        // Mostrar errores de autenticación
+        if (authState is AuthState.Error) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+            ) {
+                Text(
+                    text = (authState as AuthState.Error).message,
+                    modifier = Modifier.padding(16.dp),
+                    color = MaterialTheme.colorScheme.onErrorContainer
+                )
+            }
+            Spacer(modifier = Modifier.height(16.dp))
         }
 
         InputField(
@@ -52,7 +106,12 @@ fun LoginScreen(navController: NavController) {
             placeholder = "ejemplo@correo.com"
         )
         if (emailError.isNotEmpty()) {
-            Text(emailError, color = Color.Red, fontSize = MaterialTheme.typography.bodySmall.fontSize)
+            Text(
+                text = emailError,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(start = 4.dp, top = 4.dp)
+            )
         }
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -68,15 +127,19 @@ fun LoginScreen(navController: NavController) {
             placeholder = "Mínimo 6 caracteres"
         )
         if (passwordError.isNotEmpty()) {
-            Text(passwordError, color = Color.Red, fontSize = MaterialTheme.typography.bodySmall.fontSize)
+            Text(
+                text = passwordError,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(start = 4.dp, top = 4.dp)
+            )
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
-        PrimaryButton(
-            text = "Iniciar Sesión",
+        Button(
             onClick = {
-                if (!isConnected) return@PrimaryButton
+                if (!isConnected) return@Button
 
                 var isValid = true
 
@@ -97,16 +160,29 @@ fun LoginScreen(navController: NavController) {
                 }
 
                 if (isValid) {
-                    navController.navigate("home") // será sustituido por login real en FASE 3.2
+                    authViewModel.signIn(email, password)
                 }
+            },
+            modifier = Modifier.fillMaxWidth(),
+            enabled = authState !is AuthState.Loading && isConnected
+        ) {
+            if (authState is AuthState.Loading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+                Spacer(modifier = Modifier.width(8.dp))
             }
-        )
+            Text("Iniciar Sesión")
+        }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
-        PrimaryButton(
-            text = "Ir a Registro",
-            onClick = { navController.navigate("register") }
-        )
+        OutlinedButton(
+            onClick = { navController.navigate("register") },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Crear cuenta nueva")
+        }
     }
 }

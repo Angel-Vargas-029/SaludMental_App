@@ -1,8 +1,9 @@
+// build.gradle.kts (:app)
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-    id("com.google.gms.google-services")
+    id("com.google.gms.google-services") // Este plugin está bien así
 }
 
 android {
@@ -41,6 +42,7 @@ android {
 }
 
 dependencies {
+    // Dependencias existentes que ya usaban Version Catalog (están bien)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -50,6 +52,8 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.navigation.common.android)
+
+    // Dependencias de test (están bien)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -57,8 +61,28 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+
+    // Dependencias de navegación y Material Icons que ya estaban usando Version Catalog (están bien)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.material.icons.extended)
-    implementation(platform("com.google.firebase:firebase-bom:33.16.0"))
-    implementation("com.google.firebase:firebase-analytics")
+
+    // --- ¡Aquí están los cambios clave para Firebase y Lifecycle! ---
+
+    // Firebase BOM - Administra versiones de Firebase
+    // Antes: implementation(platform("com.google.firebase:firebase-bom:33.16.0"))
+    implementation(platform(libs.firebase.bom)) // <-- CORREGIDO
+
+    // Firebase Dependencies
+    // Antes: implementation("com.google.firebase:firebase-analytics")
+    implementation(libs.firebase.analytics) // <-- CORREGIDO
+    // Antes: implementation("com.google.firebase:firebase-auth")
+    implementation(libs.firebase.auth)       // <-- CORREGIDO
+    // Antes: implementation("com.google.firebase:firebase-firestore")
+    implementation(libs.firebase.firestore)  // <-- CORREGIDO
+
+    // ViewModel y LiveData
+    // Antes: implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.1")
+    implementation(libs.androidx.lifecycle.viewmodel.compose) // <-- CORREGIDO
+    // Antes: implementation("androidx.lifecycle:lifecycle-runtime-compose:2.9.1")
+    implementation(libs.androidx.lifecycle.runtime.compose)   // <-- CORREGIDO
 }

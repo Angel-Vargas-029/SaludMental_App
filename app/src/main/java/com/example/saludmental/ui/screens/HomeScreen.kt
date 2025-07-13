@@ -8,18 +8,80 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.saludmental.data.MockData
 import com.example.saludmental.ui.components.PostCard
+import com.example.saludmental.ui.viewmodel.AuthViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(navController: NavController) {
+fun HomeScreen(
+    navController: NavController,
+    authViewModel: AuthViewModel = viewModel()
+) {
+    var showUserMenu by remember { mutableStateOf(false) }
+
     Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        "Salud Mental App",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                actions = {
+                    Box {
+                        IconButton(onClick = { showUserMenu = true }) {
+                            Icon(Icons.Default.Person, contentDescription = "Perfil")
+                        }
+
+                        DropdownMenu(
+                            expanded = showUserMenu,
+                            onDismissRequest = { showUserMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("👤 ${authViewModel.getUserDisplayName()}") },
+                                onClick = { }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("📧 ${authViewModel.getUserEmail()}") },
+                                onClick = { }
+                            )
+                            HorizontalDivider(
+                                Modifier,
+                                DividerDefaults.Thickness,
+                                DividerDefaults.color
+                            )
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        "🚪 Cerrar sesión",
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                },
+                                onClick = {
+                                    authViewModel.signOut()
+                                    navController.navigate("login") {
+                                        popUpTo(0) { inclusive = true }
+                                    }
+                                    showUserMenu = false
+                                }
+                            )
+                        }
+                    }
+                }
+            )
+        },
         bottomBar = {
             BottomAppBar {
                 NavigationBarItem(
@@ -56,25 +118,36 @@ fun HomeScreen(navController: NavController) {
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             item {
-                Column(
-                    modifier = Modifier.padding(vertical = 16.dp)
+                // Tarjeta de bienvenida personalizada
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    )
                 ) {
-                    Text(
-                        text = "Salud Mental App",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "Tu bienestar es nuestra prioridad",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Column(
+                        modifier = Modifier.padding(20.dp)
+                    ) {
+                        Text(
+                            text = "¡Hola, ${authViewModel.getUserDisplayName()}! 👋",
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Tu bienestar es nuestra prioridad. ¿Cómo te sientes hoy?",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
                 }
             }
 
             item {
+                Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Tips y Recursos",
+                    text = "📚 Tips y Recursos",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.padding(vertical = 8.dp)
