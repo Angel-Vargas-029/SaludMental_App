@@ -18,9 +18,9 @@ fun NavGraph(
         composable("login") { LoginScreen(navController) }
         composable("register") { RegisterScreen(navController) }
         composable("home") { HomeScreen(navController) }
-        composable("diary") { DiaryScreen() }
-        composable("music") { MusicScreen() }
-        composable("appointments") { AppointmentsScreen() }
-        composable("history") { HistoryScreen() }
+        composable("diary") { DiaryScreen(navController) }
+        composable("music") { MusicScreen(navController) }
+        composable("appointments") { AppointmentsScreen(navController) }
+        composable("history") { HistoryScreen(navController) }
     }
 }
