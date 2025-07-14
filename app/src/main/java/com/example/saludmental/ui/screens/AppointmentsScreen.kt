@@ -1,3 +1,6 @@
+// ARCHIVO: app/src/main/java/com/example/saludmental/ui/screens/AppointmentsScreen.kt
+// REEMPLAZAR TODO EL CONTENIDO EXISTENTE
+
 package com.example.saludmental.ui.screens
 
 import androidx.compose.foundation.layout.*
@@ -13,7 +16,7 @@ import androidx.navigation.NavController
 import com.example.saludmental.data.MockData
 import com.example.saludmental.data.models.Appointment
 import com.example.saludmental.ui.components.AppointmentCard
-import com.example.saludmental.ui.components.BackButton
+import com.example.saludmental.ui.components.ConsistentTopBar
 
 @Composable
 fun AppointmentsScreen(navController: NavController) {
@@ -23,97 +26,102 @@ fun AppointmentsScreen(navController: NavController) {
     // Filtrar solo las citas no completadas
     val pendingAppointments = appointments.filter { !it.isCompleted }
 
-    Scaffold(
-        topBar = {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                BackButton(navController)
-                Text(
-                    text = "Mis Citas",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.width(48.dp))
-            }
-        }
-    ) { innerPadding ->
-        if (pendingAppointments.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally
+    // ✅ DISEÑO CONSISTENTE CON BARRAS DEL SISTEMA
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            // ✅ BARRA SUPERIOR CONSISTENTE
+            ConsistentTopBar(
+                title = "Mis Citas",
+                navController = navController,
+                showBackButton = true
+            )
+
+            // CONTENIDO PRINCIPAL
+            if (pendingAppointments.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = "📅 No tienes citas pendientes",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Todas tus citas han sido completadas",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                item {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.tertiaryContainer
-                        )
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(24.dp)
                     ) {
-                        Column(
-                            modifier = Modifier.padding(16.dp)
-                        ) {
-                            Text(
-                                text = "📋 Próximas Citas",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = "Marca como completada una vez que hayas asistido",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onTertiaryContainer
-                            )
-                        }
+                        Text(
+                            text = "📅 No tienes citas pendientes",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Todas tus citas han sido completadas",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .weight(1f)
+                        .padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    item { Spacer(modifier = Modifier.height(8.dp)) }
 
-                items(pendingAppointments) { appointment ->
-                    AppointmentCard(
-                        appointment = appointment,
-                        onMarkCompleted = {
-                            // Marcar como completada y mover al historial
-                            val updatedAppointment = appointment.copy(isCompleted = true)
-                            appointments = appointments.map {
-                                if (it.id == appointment.id) updatedAppointment else it
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.7f)
+                            ),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(20.dp)
+                            ) {
+                                Text(
+                                    text = "📋 Próximas Citas",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "Marca como completada una vez que hayas asistido",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
-                            completedAppointments = completedAppointments + updatedAppointment
-                        },
-                        showCompleteButton = true
-                    )
-                }
+                        }
+                    }
 
-                item {
-                    Spacer(modifier = Modifier.height(16.dp))
+                    items(pendingAppointments) { appointment ->
+                        AppointmentCard(
+                            appointment = appointment,
+                            onMarkCompleted = {
+                                // Marcar como completada y mover al historial
+                                val updatedAppointment = appointment.copy(isCompleted = true)
+                                appointments = appointments.map {
+                                    if (it.id == appointment.id) updatedAppointment else it
+                                }
+                                completedAppointments = completedAppointments + updatedAppointment
+                            },
+                            showCompleteButton = true
+                        )
+                    }
+
+                    // ✅ PADDING INFERIOR PARA BARRAS DEL SISTEMA
+                    item {
+                        Spacer(
+                            modifier = Modifier.height(
+                                WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 16.dp
+                            )
+                        )
+                    }
                 }
             }
         }

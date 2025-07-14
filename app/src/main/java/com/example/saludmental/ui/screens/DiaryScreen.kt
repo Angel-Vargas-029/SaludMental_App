@@ -1,4 +1,6 @@
-// app/src/main/java/com/example/saludmental/ui/screens/DiaryScreen.kt
+// ARCHIVO: app/src/main/java/com/example/saludmental/ui/screens/DiaryScreen.kt
+// REEMPLAZAR TODO EL CONTENIDO EXISTENTE
+
 package com.example.saludmental.ui.screens
 
 import androidx.compose.foundation.layout.*
@@ -16,7 +18,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.saludmental.data.models.DiaryEntry
-import com.example.saludmental.ui.components.BackButton
+import com.example.saludmental.ui.components.ConsistentTopBar
 import com.example.saludmental.ui.components.DiaryCard
 import com.example.saludmental.ui.components.InputField
 import com.example.saludmental.ui.components.PrimaryButton
@@ -43,131 +45,147 @@ fun DiaryScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            Row(
+    // ✨ USAR SCAFFOLD SIN PADDING PARA MANEJO MANUAL DE BARRAS DEL SISTEMA
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            // ✅ BARRA SUPERIOR CONSISTENTE
+            ConsistentTopBar(
+                title = "Mi Diario Personal",
+                navController = navController,
+                showBackButton = true
+            )
+
+            // CONTENIDO PRINCIPAL
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                    .fillMaxSize()
+                    .weight(1f)
             ) {
-                BackButton(navController)
-                Text(
-                    text = "Mi Diario Personal",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.width(48.dp))
-            }
-        },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = {
-                    editingEntry = null
-                    title = ""
-                    content = ""
-                    showDialog = true
+                when {
+                    uiState.isLoading -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                CircularProgressIndicator(
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(
+                                    "Cargando entradas...",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+
+                    uiState.errorMessage != null -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier.padding(24.dp)
+                            ) {
+                                Text(
+                                    text = "❌ Error:",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = uiState.errorMessage!!,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+
+                    uiState.entries.isEmpty() -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier.padding(24.dp)
+                            ) {
+                                Text(
+                                    text = "📝 No hay entradas aún",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "Toca el botón + para crear tu primera entrada",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+
+                    else -> {
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 16.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            item { Spacer(modifier = Modifier.height(8.dp)) }
+
+                            items(uiState.entries) { entry ->
+                                DiaryCard(
+                                    entry = entry,
+                                    onEdit = {
+                                        editingEntry = entry
+                                        title = entry.title
+                                        content = entry.content
+                                        showDialog = true
+                                    },
+                                    onDelete = {
+                                        diaryViewModel.deleteDiaryEntry(entry.id)
+                                    }
+                                )
+                            }
+
+                            // ✅ PADDING INFERIOR PARA LA NAVEGACIÓN DEL SISTEMA
+                            item {
+                                Spacer(
+                                    modifier = Modifier.height(
+                                        WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 16.dp
+                                    )
+                                )
+                            }
+                        }
+                    }
                 }
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Agregar entrada")
             }
         }
-    ) { innerPadding ->
-        Box(
+
+        // ✅ FAB CON PADDING APROPIADO PARA BARRAS DEL SISTEMA
+        FloatingActionButton(
+            onClick = {
+                editingEntry = null
+                title = ""
+                content = ""
+                showDialog = true
+            },
             modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
+                .align(Alignment.BottomEnd)
+                .padding(16.dp)
+                .padding(
+                    bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+                ),
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary
         ) {
-            when {
-                uiState.isLoading -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            CircularProgressIndicator()
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text("Cargando entradas...")
-                        }
-                    }
-                }
-
-                uiState.errorMessage != null -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(
-                                text = "❌ Error:",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.error
-                            )
-                            Text(
-                                text = uiState.errorMessage!!,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-
-                uiState.entries.isEmpty() -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(
-                                text = "📝 No hay entradas aún",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = "Toca el botón + para crear tu primera entrada",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-
-                else -> {
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        item { Spacer(modifier = Modifier.height(8.dp)) }
-
-                        items(uiState.entries) { entry ->
-                            DiaryCard(
-                                entry = entry,
-                                onEdit = {
-                                    editingEntry = entry
-                                    title = entry.title
-                                    content = entry.content
-                                    showDialog = true
-                                },
-                                onDelete = {
-                                    diaryViewModel.deleteDiaryEntry(entry.id)
-                                }
-                            )
-                        }
-
-                        item { Spacer(modifier = Modifier.height(100.dp)) }
-                    }
-                }
-            }
+            Icon(Icons.Default.Add, contentDescription = "Agregar entrada")
         }
     }
 
@@ -176,7 +194,11 @@ fun DiaryScreen(
         AlertDialog(
             onDismissRequest = { showDialog = false },
             title = {
-                Text(if (editingEntry == null) "Nueva Entrada" else "Editar Entrada")
+                Text(
+                    if (editingEntry == null) "Nueva Entrada" else "Editar Entrada",
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
             },
             text = {
                 Column {
@@ -214,9 +236,12 @@ fun DiaryScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showDialog = false }) {
-                    Text("Cancelar")
+                    Text("Cancelar", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-            }
+            },
+            containerColor = MaterialTheme.colorScheme.surface,
+            titleContentColor = MaterialTheme.colorScheme.primary,
+            textContentColor = MaterialTheme.colorScheme.onSurface
         )
     }
 }
